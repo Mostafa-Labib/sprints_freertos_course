@@ -65,6 +65,8 @@
 /* Peripheral includes. */
 #include "serial.h"
 #include "GPIO.h"
+
+#include "queue.h"
 #include "semphr.h"
 
 
@@ -84,23 +86,28 @@
  */
 static void prvSetupHardware( void );
 /*-----------------------------------------------------------*/
-
+/** task hundlers**/
 TaskHandle_t periodicString_handler = NULL;
 TaskHandle_t consumer_handler = NULL;
 TaskHandle_t button1_handler = NULL;
 TaskHandle_t button2_handler = NULL;
+/**queue handler**/
 QueueHandle_t xQueue1;
-/* Task to be created. */
 
+/* Tasks to be created. */
 /**
-  * takes button input and measures time of press
+	* button 1 task: it sends strings on rising and falling edges
 	*/
 void button1_task( void * pvParameters )
 {
-			TickType_t xLastWakeTime;
+		/** last time the task started execution*/
+		TickType_t xLastWakeTime;
+		/**periodicity*/
 		const TickType_t xFrequency = 50;
-
+		/*the states of the button*/
+		/**the last state of the button*/
 		pinState_t previousState = PIN_IS_HIGH;
+		//current state of the button
 		pinState_t currentState = PIN_IS_HIGH;
 	
 			// Initialise the xLastWakeTime variable with the current time.
@@ -112,7 +119,7 @@ void button1_task( void * pvParameters )
 				previousState = currentState;
 				/*read the button state*/
 				currentState = GPIO_read(PORT_0,PIN1);
-				
+				/**compare the button states and send string to the queue*/
 				if(currentState == PIN_IS_HIGH && previousState == PIN_IS_LOW)
 				{
 					if( xQueue1 != 0 )
@@ -128,18 +135,21 @@ void button1_task( void * pvParameters )
 					}
 				}
 				vTaskDelayUntil( &xLastWakeTime, xFrequency );
-				
     }
 }
 /**
-  * takes button input and measures time of press
+	* button 2 task: it sends strings on rising and falling edges
 	*/
 void button2_task( void * pvParameters )
 {
-			TickType_t xLastWakeTime;
-		const TickType_t xFrequency = 50;
-
+		/** last time the task started execution*/
+		TickType_t xLastWakeTime;
+		/**periodicity*/
+		TickType_t xFrequency = 50;
+		/*the states of the button*/
+		/**the last state of the button*/
 		pinState_t previousState = PIN_IS_HIGH;
+		//current state of the button
 		pinState_t currentState = PIN_IS_HIGH;
 	
 			// Initialise the xLastWakeTime variable with the current time.
@@ -151,7 +161,7 @@ void button2_task( void * pvParameters )
 				previousState = currentState;
 				/*read the button state*/
 				currentState = GPIO_read(PORT_0,PIN2);
-				
+				/**compare the button states and send string to the queue*/
 				if(currentState == PIN_IS_HIGH && previousState == PIN_IS_LOW)
 				{
 					if( xQueue1 != 0 )
@@ -167,56 +177,58 @@ void button2_task( void * pvParameters )
 					}
 				}
 				vTaskDelayUntil( &xLastWakeTime, xFrequency );
-				
     }
 }
 /**
-  * takes button input and measures time of press
+  * this task puts string the queue every 100 ms 
 	*/
 void periodicString_task( void * pvParameters )
 {
+		/** last time the task started execution*/
 		TickType_t xLastWakeTime;
-		const TickType_t xFrequency = 100;
+		/** periodicity*/
+		TickType_t xFrequency = 100;
 		// Initialise the xLastWakeTime variable with the current time.
     xLastWakeTime = xTaskGetTickCount();
     for( ;; )
     {
       /* Task code goes here. */
-			//GPIO_write(PORT_0,PIN0,PIN_IS_HIGH);
 			if( xQueue1 != 0 )
 			{
 			 xQueueSend( xQueue1,( void * ) "periodic task\n", portMAX_DELAY);
 			}
-			//GPIO_write(PORT_0,PIN0,PIN_IS_LOW);
 			vTaskDelayUntil( &xLastWakeTime, xFrequency );
-			//vTaskDelay(100);
     }
 }
 void consumer_task( void * pvParameters )
 {
+		/** buffer to hold the string from the queue*/
 		signed char buffer[20];
+		/** last time the task started execution*/
 		TickType_t xLastWakeTime;
+	  /**periodicity*/
 		const TickType_t xFrequency = 10;
+		/** function return*/
 		unsigned char ret = pdFALSE;
 		// Initialise the xLastWakeTime variable with the current time.
     xLastWakeTime = xTaskGetTickCount();
     for( ;; )
     {
       /* Task code goes here. */
-			//GPIO_write(PORT_0,PIN0,PIN_IS_HIGH);
+			/*check if xqueue1 is created or not*/
 			if( xQueue1 != 0 )
 			{
+				/**check if there is a new item in the queue or not and if yes put it in buffer*/
 				if(xQueueReceive(xQueue1,(void*)buffer,portMAX_DELAY) == pdPASS)
 				{
+					/**send the string in the buffer using uart*/
 					do
 					{
 						ret = vSerialPutString(buffer,strlen(buffer));
 					}while(ret == pdFALSE);
 				}
 			}
-			//GPIO_write(PORT_0,PIN0,PIN_IS_LOW);
 			vTaskDelayUntil( &xLastWakeTime, xFrequency );
-			//vTaskDelay(100);
     }
 }
 /*

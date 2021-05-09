@@ -82,13 +82,14 @@
  */
 static void prvSetupHardware( void );
 /*-----------------------------------------------------------*/
+/**variable to check if the button was pressed or not*/
 unsigned char systemState = 0;
+/**led task handler*/
 TaskHandle_t led_handler = NULL;
+/**button task handler*/
 TaskHandle_t button_handler = NULL;
-unsigned short buttonTimeCounter = 0;
-pinState_t buttonState = 0;
-pinState_t ledState = 0;
-unsigned char ButtonIsLowFlag = 0;
+
+
 /* Task to be created. */
 
 /**
@@ -97,12 +98,14 @@ unsigned char ButtonIsLowFlag = 0;
 void led_task( void * pvParameters )
 {
 
-
+		pinState_t ledState = 0;
     for( ;; )
     {
         /* Task code goes here. */
+				/**check if the button was pressed or not */
 				if(systemState == 1)
 				{
+					/**if yes read the led state and change it*/
 					ledState = GPIO_read(PORT_0,PIN0);
 					if(ledState == PIN_IS_HIGH)
 					{
@@ -123,7 +126,8 @@ void led_task( void * pvParameters )
 	*/
 void button_task( void * pvParameters )
 {
-
+unsigned short buttonTimeCounter = 0;
+pinState_t buttonState = 0;
 
     for( ;; )
     {

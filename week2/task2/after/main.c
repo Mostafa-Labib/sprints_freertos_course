@@ -84,21 +84,27 @@
  */
 static void prvSetupHardware( void );
 /*-----------------------------------------------------------*/
-unsigned char systemState = 0;
+/**handler for the task with 100ms periodicity*/
 TaskHandle_t short_handler = NULL;
+/**handler for the task with 500ms periodicity*/
 TaskHandle_t long_handler = NULL;
+/**mutex handler*/
 SemaphoreHandle_t xMutex = NULL;
 /* Task to be created. */
 
 /**
-	* this task controls led toggling time
+	* this task sends 10 string with delay between them every 500ms
   */
 void long_task( void * pvParameters )
 {
+		/** loop counters*/
 		unsigned int counter1,counter2;
+		/** function return variable*/
 		unsigned char ret;
+		/** function return variable*/
 		TickType_t xLastWakeTime;
-		const TickType_t xFrequency = 500;
+		/** function return variable*/
+		TickType_t xFrequency = 500;
 	  // Initialise the xLastWakeTime variable with the current time.
 	  xLastWakeTime = xTaskGetTickCount();
     for( ;; )
@@ -117,7 +123,9 @@ void long_task( void * pvParameters )
 
 						while(counter1 < 10)
 						{			
-							ret = vSerialPutString("ahmed\n",6);
+							ret = vSerialPutString("long task\n",10);
+							/**if the function available to send the string*/
+							/**delay for 100000 iteration and increase the string counter*/
 							if(ret == pdTRUE)
 							{
 								for(counter2 = 0;counter2 < 100000;counter2++)
@@ -132,7 +140,6 @@ void long_task( void * pvParameters )
 						//GPIO_write(PORT_0,PIN0,PIN_IS_LOW);
 						// Wait for the next cycle.
 						vTaskDelayUntil( &xLastWakeTime, xFrequency );
-						//vTaskDelay(500);
         }
         else
         {
@@ -144,14 +151,19 @@ void long_task( void * pvParameters )
     }
 }
 
+
 /**
-  * takes button input and measures time of press
+  * this task sends 10 strings every 100ms
 	*/
 void short_task( void * pvParameters )
 {
+		/** last time the task started execution*/
 		TickType_t xLastWakeTime;
-		const TickType_t xFrequency = 100;
+		/** periodicity*/
+		TickType_t xFrequency = 100;
+		/**counter for the strings*/
 		unsigned int counter1 = 0;
+		/** variable to hold the function return*/
 		unsigned char ret = pdFALSE;
 		// Initialise the xLastWakeTime variable with the current time.
     xLastWakeTime = xTaskGetTickCount();
@@ -160,18 +172,21 @@ void short_task( void * pvParameters )
       /* Task code goes here. */
 			//GPIO_write(PORT_0,PIN0,PIN_IS_HIGH);
 			counter1 = 0;
+			/**check if the mutex is created*/
 			if(xMutex != NULL)
 			{
+				/**take the mutex*/
 				if(xSemaphoreTake(xMutex,portMAX_DELAY) == pdTRUE)
 				{
 					while(counter1 < 10)
 					{
-						ret = vSerialPutString("juarju\n",7);
+						ret = vSerialPutString("short task\n",11);
 						if(ret == pdTRUE)
 						{
 							counter1++;
 						}
 					}
+					/** give the mutex*/
 					xSemaphoreGive(xMutex);
 					//GPIO_write(PORT_0,PIN0,PIN_IS_LOW);
 					vTaskDelayUntil( &xLastWakeTime, xFrequency );
